@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🚗 Мой Гараж v2</title>
+<style>
+  :root {
+    --bg: #0f1115; --card: #181b22; --card-hover: #1f232c;
+    --border: #2a2f3a; --text: #e8eaed; --text-dim: #9aa0aa;
+    --accent: #4f8cff; --accent-2: #7c5cff;
+    --green: #2ecc71; --yellow: #f1c40f; --red: #e74c3c; --orange: #e67e22;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    background:radial-gradient(1200px 600px at 10% -10%, #1a1f2e 0%, var(--bg) 50%);
+    color:var(--text); min-height:100vh; padding:20px;
+  }
+  .container { max-width:1200px; margin:0 auto; }
+
+  header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:14px; }
+  h1 { font-size:26px; font-weight:700; background:linear-gradient(90deg,var(--accent),var(--accent-2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .subtitle { color:var(--text-dim); font-size:13px; margin-top:4px; }
+
+  /* Vehicle tabs */
+  .vehicle-tabs { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; align-items:center; }
+  .vtab {
+    background:var(--card); border:1px solid var(--border); color:var(--text);
+    padding:10px 18px; border-radius:12px; cursor:pointer; font-size:14px; font-weight:600;
+    transition:all .2s; display:flex; align-items:center; gap:8px;
+  }
+  .vtab:hover { border-color:var(--accent); }
+  .vtab.active { background:linear-gradient(90deg,var(--accent),var(--accent-2)); border-color:transparent; color:white; }
+  .vtab .vdel { opacity:.6; font-size:12px; }
+  .vtab .vdel:hover { opacity:1; color:var(--red); }
+  .vtab-add { background:transparent; border:1px dashed var(--border); color:var(--text-dim); padding:10px 16px; border-radius:12px; cursor:pointer; font-size:14px; }
+  .vtab-add:hover { border-color:var(--accent); color:var(--accent); }
+
+  /* Stats */
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-bottom:20px; }
+  .stat-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; transition:transform .2s,border-color .2s; }
+  .stat-card:hover { transform:translateY(-2px); border-color:var(--accent); }
+  .stat-label { font-size:12px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.5px; }
+  .stat-value { font-size:24px; font-weight:700; margin-top:4px; }
+  .stat-value.green { color:var(--green); } .stat-value.red { color:var(--red); }
+  .stat-value.yellow { color:var(--yellow); } .stat-value.accent { color:var(--accent); }
+
+  /* View toggle */
+  .view-toggle { display:flex; gap:6px; margin-bottom:16px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:4px; width:fit-content; }
+  .view-toggle button {
+    background:transparent; border:none; color:var(--text-dim); padding:8px 18px;
+    border-radius:8px; cursor:pointer; font-size:14px; font-weight:600; transition:all .2s;
+  }
+  .view-toggle button.active { background:var(--accent); color:white; }
+
+  /* Toolbar */
+  .toolbar { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; }
+  .search { flex:1; min-width:180px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:11px 16px; color:var(--text); font-size:14px; outline:none; }
+  .search:focus { border-color:var(--accent); }
+  .filter { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:11px 14px; color:var(--text); font-size:14px; outline:none; cursor:pointer; }
+  .btn { background:linear-gradient(90deg,var(--accent),var(--accent-2)); color:white; border:none; border-radius:12px; padding:11px 20px; font-size:14px; font-weight:600; cursor:pointer; transition:opacity .2s,transform .1s; white-space:nowrap; }
+  .btn:hover { opacity:.9; } .btn:active { transform:scale(.97); }
+  .btn-ghost { background:transparent; border:1px solid var(--border); color:var(--text); }
+
+  /* Grid / Cards */
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:14px; }
+  .item { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; transition:transform .2s,border-color .2s,background .2s; position:relative; }
+  .item:hover { transform:translateY(-3px); background:var(--card-hover); border-color:var(--accent); }
+  .item-header { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:8px; }
+  .item-title { font-size:16px; font-weight:600; line-height:1.3; }
+  .item-actions { display:flex; gap:5px; }
+  .icon-btn { background:transparent; border:1px solid var(--border); color:var(--text-dim); width:28px; height:28px; border-radius:7px; cursor:pointer; font-size:13px; transition:all .2s; }
+  .icon-btn:hover { color:var(--text); border-color:var(--accent); }
+  .icon-btn.danger:hover { color:var(--red); border-color:var(--red); }
+  .badges { display:flex; flex-wrap:wrap; gap:5px; margin:8px 0; }
+  .badge { font-size:10px; padding:3px 9px; border-radius:20px; font-weight:600; letter-spacing:.3px; }
+  .badge.planned { background:rgba(79,140,255,.15); color:#7aa7ff; }
+  .badge.inprogress { background:rgba(241,196,15,.15); color:var(--yellow); }
+  .badge.done { background:rgba(46,204,113,.15); color:var(--green); }
+  .badge.optional { background:rgba(154,160,170,.15); color:var(--text-dim); }
+  .badge.required { background:rgba(230,126,34,.15); color:var(--orange); }
+  .badge.paid { background:rgba(46,204,113,.15); color:var(--green); }
+  .badge.unpaid { background:rgba(231,76,60,.15); color:var(--red); }
+  .badge.delivered { background:rgba(46,204,113,.15); color:var(--green); }
+  .badge.ordered { background:rgba(79,140,255,.15); color:#7aa7ff; }
+  .item-meta { font-size:12px; color:var(--text-dim); display:flex; flex-direction:column; gap:3px; margin-top:8px; }
+  .item-meta strong { color:var(--text); font-weight:500; }
+  .item-comment { margin-top:8px; font-size:12px; color:var(--text-dim); padding:7px 11px; background:rgba(255,255,255,.02); border-radius:9px; border-left:2px solid var(--accent); }
+  .item-link { display:inline-block; margin-top:8px; font-size:12px; color:var(--accent); text-decoration:none; }
+  .item-link:hover { text-decoration:underline; }
+
+  /* Reminders */
+  .reminder-item { display:flex; align-items:center; gap:14px; padding:14px; background:var(--card); border:1px solid var(--border); border-radius:12px; margin-bottom:10px; transition:border-color .2s; }
+  .reminder-item:hover { border-color:var(--accent); }
+  .reminder-item.overdue { border-color:var(--red); background:rgba(231,76,60,.05); }
+  .reminder-item.soon { border-color:var(--yellow); background:rgba(241,196,15,.05); }
+  .reminder-icon { font-size:24px; width:36px; text-align:center; }
+  .reminder-body { flex:1; }
+  .reminder-title { font-weight:600; font-size:15px; }
+  .reminder-sub { font-size:12px; color:var(--text-dim); margin-top:3px; }
+  .reminder-progress { height:6px; background:var(--border); border-radius:3px; margin-top:8px; overflow:hidden; }
+  .reminder-progress-bar { height:100%; border-radius:3px; transition:width .3s; }
+  .reminder-badge { font-size:12px; font-weight:700; padding:6px 12px; border-radius:20px; white-space:nowrap; }
+  .reminder-badge.overdue { background:rgba(231,76,60,.2); color:var(--red); }
+  .reminder-badge.soon { background:rgba(241,196,15,.2); color:var(--yellow); }
+  .reminder-badge.ok { background:rgba(46,204,113,.15); color:var(--green); }
+
+  /* Chart */
+  .chart-wrap { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; margin-bottom:16px; }
+  .chart-title { font-size:15px; font-weight:600; margin-bottom:16px; color:var(--text); }
+  .bar-chart { display:flex; align-items:flex-end; gap:8px; height:200px; padding-top:10px; }
+  .bar-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; min-width:30px; }
+  .bar { width:100%; background:linear-gradient(180deg,var(--accent),var(--accent-2)); border-radius:6px 6px 0 0; min-height:3px; transition:height .4s; position:relative; cursor:pointer; }
+  .bar:hover { opacity:.85; }
+  .bar-val { font-size:10px; color:var(--text-dim); font-weight:600; }
+  .bar-label { font-size:11px; color:var(--text-dim); }
+  .chart-empty { text-align:center; color:var(--text-dim); padding:40px; font-size:14px; }
+  .chart-summary { display:flex; justify-content:space-between; margin-top:16px; padding-top:16px; border-top:1px solid var(--border); font-size:14px; }
+  .chart-summary strong { color:var(--accent); }
+
+  /* Empty state */
+  .empty { text-align:center; padding:50px 20px; color:var(--text-dim); }
+  .empty-icon { font-size:56px; margin-bottom:14px; }
+
+  /* Modal */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; padding:20px; z-index:100; }
+  .modal-overlay.active { display:flex; }
+  .modal { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:26px; width:100%; max-width:560px; max-height:90vh; overflow-y:auto; animation:slideUp .3s ease; }
+  @keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+  .modal h2 { margin-bottom:18px; font-size:20px; }
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .form-field { display:flex; flex-direction:column; gap:5px; }
+  .form-field.full { grid-column:1/-1; }
+  label { font-size:12px; color:var(--text-dim); font-weight:500; }
+  input, select, textarea { background:var(--bg); border:1px solid var(--border); border-radius:9px; padding:9px 12px; color:var(--text); font-size:13px; outline:none; font-family:inherit; transition:border-color .2s; }
+  input:focus, select:focus, textarea:focus { border-color:var(--accent); }
+  textarea { resize:vertical; min-height:60px; }
+  .modal-footer { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+
+  .section-title { font-size:18px; font-weight:700; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+  .hidden { display:none !important; }
+
+  @media (max-width:600px) {
+    body { padding:14px; }
+    .form-grid { grid-template-columns:1fr; }
+    h1 { font-size:21px; }
+    .bar-chart { height:160px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div>
+      <h1>🚗 Мой Гараж</h1>
+      <div class="subtitle">Работы, планы и напоминания по вашему транспорту</div>
+    </div>
+    <button class="btn" onclick="openItemModal()">+ Добавить запись</button>
+  </header>
+
+  <!-- Vehicle tabs -->
+  <div class="vehicle-tabs" id="vehicleTabs"></div>
+
+  <!-- Stats -->
+  <div class="stats" id="stats"></div>
+
+  <!-- View toggle -->
+  <div class="view-toggle">
+    <button class="active" data-view="records" onclick="switchView('records')">📋 Записи</button>
+    <button data-view="reminders" onclick="switchView('reminders')">🔔 Напоминания ТО</button>
+    <button data-view="chart" onclick="switchView('chart')">📊 Расходы</button>
+  </div>
+
+  <!-- ===== RECORDS VIEW ===== -->
+  <div id="view-records">
+    <div class="toolbar">
+      <input type="text" class="search" id="search" placeholder="🔍 Поиск по названию, комментарию..." oninput="renderRecords()">
+      <select class="filter" id="filterStatus" onchange="renderRecords()">
+        <option value="">Все статусы</option>
+        <option>Планируется</option><option>В процессе</option><option>Сделано</option>
+      </select>
+      <select class="filter" id="filterPayment" onchange="renderRecords()">
+        <option value="">Все оплаты</option>
+        <option>Оплачено</option><option>Не оплачено</option>
+      </select>
+      <button class="btn btn-ghost" onclick="exportData()">⬇ Экспорт</button>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="empty" id="empty-records" style="display:none">
+      <div class="empty-icon">🔧</div>
+      <h3>Пока пусто</h3>
+      <p>Добавьте первую запись о работе или плане</p>
+    </div>
+  </div>
+
+  <!-- ===== REMINDERS VIEW ===== -->
+  <div id="view-reminders" class="hidden">
+    <div class="section-title">🔔 Напоминания о ТО</div>
+    <p style="color:var(--text-dim); font-size:13px; margin-bottom:16px;">
+      Укажите текущий пробег машины в настройках ТО. Напоминания рассчитываются от последнего ТО.
+    </p>
+    <div id="remindersList"></div>
+  </div>
+
+  <!-- ===== CHART VIEW ===== -->
+  <div id="view-chart" class="hidden">
+    <div class="section-title">📊 График расходов по месяцам</div>
+    <div class="chart-wrap">
+      <div class="chart-title">Расходы за последние 12 месяцев (₽)</div>
+      <div class="bar-chart" id="barChart"></div>
+      <div class="chart-empty hidden" id="chartEmpty">Нет данных о расходах. Добавьте записи со стоимостью.</div>
+      <div class="chart-summary" id="chartSummary"></div>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-title">Расходы по категориям</div>
+      <div id="categoryChart"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ITEM MODAL ===== -->
+<div class="modal-overlay" id="itemModal" onclick="if(event.target===this)closeItemModal()">
+  <div class="modal">
+    <h2 id="itemModalTitle">Новая запись</h2>
+    <form onsubmit="saveItem(event)">
+      <input type="hidden" id="itemId">
+      <div class="form-grid">
+        <div class="form-field full"><label>Наименование *</label><input type="text" id="name" required placeholder="Например: Замена масла"></div>
+        <div class="form-field"><label>Дата</label><input type="date" id="date"></div>
+        <div class="form-field"><label>Категория</label>
+          <select id="category"><option>ТО</option><option>Ремонт</option><option>Тюнинг</option><option>Расходники</option><option>Другое</option></select>
+        </div>
+        <div class="form-field"><label>Необходимость</label>
+          <select id="necessity"><option>Обязательно</option><option>Желательно</option><option>Опционально</option></select>
+        </div>
+        <div class="form-field"><label>Состояние</label>
+          <select id="status"><option>Планируется</option><option>В процессе</option><option>Сделано</option></select>
+        </div>
+        <div class="form-field"><label>Стоимость (₽)</label><input type="number" id="cost" min="0" step="1" placeholder="0"></div>
+        <div class="form-field"><label>Статус оплаты</label>
+          <select id="payment"><option>Не оплачено</option><option>Оплачено</option></select>
+        </div>
+        <div class="form-field"><label>Статус доставки</label>
+          <select id="delivery"><option>Не требуется</option><option>Заказано</option><option>Доставлено</option></select>
+        </div>
+        <div class="form-field"><label>Дата доставки</label><input type="date" id="deliveryDate"></div>
+        <div class="form-field full"><label>Комментарии</label><textarea id="comment" placeholder="Детали, артикулы..."></textarea></div>
+        <div class="form-field full"><label>Ссылка</label><input type="url" id="link" placeholder="https://..."></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeItemModal()">Отмена</button>
+        <button type="submit" class="btn">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== VEHICLE MODAL ===== -->
+<div class="modal-overlay" id="vehicleModal" onclick="if(event.target===this)closeVehicleModal()">
+  <div class="modal" style="max-width:420px">
+    <h2>🚙 Добавить транспорт</h2>
+    <form onsubmit="saveVehicle(event)">
+      <div class="form-field" style="margin-bottom:14px"><label>Название</label><input type="text" id="vName" required placeholder="Например: Лада Нива 2131"></div>
+      <div class="form-field" style="margin-bottom:14px"><label>Гос. номер (опционально)</label><input type="text" id="vPlate" placeholder="А123ВС 77"></div>
+      <div class="form-field" style="margin-bottom:14px"><label>Текущий пробег (км)</label><input type="number" id="vMileage" min="0" value="0"></div>
+      <div class="form-field" style="margin-bottom:14px"><label>Дата последнего ТО</label><input type="date" id="vLastTO"></div>
+      <div class="form-field" style="margin-bottom:14px"><label>Пробег на последнем ТО (км)</label><input type="number" id="vLastTOMileage" min="0" value="0"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeVehicleModal()">Отмена</button>
+        <button type="submit" class="btn">Добавить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== TO SETTINGS MODAL ===== -->
+<div class="modal-overlay" id="toModal" onclick="if(event.target===this)closeTOModal()">
+  <div class="modal" style="max-width:480px">
+    <h2 id="toModalTitle">⚙️ Настройки ТО</h2>
+    <form onsubmit="saveTO(event)">
+      <input type="hidden" id="toVehicleId">
+      <div class="form-field" style="margin-bottom:14px"><label>Текущий пробег (км)</label><input type="number" id="toMileage" min="0" required></div>
+      <div class="form-field" style="margin-bottom:14px"><label>Дата последнего ТО</label><input type="date" id="toLastDate"></div>
+      <div class="form-field" style="margin-bottom:14px"><label>Пробег на последнем ТО (км)</label><input type="number" id="toLastMileage" min="0"></div>
+      <div class="form-field" style="margin-bottom:14px"><label>Интервал ТО по пробегу (км)</label><input type="number" id="toIntervalKm" min="1000" value="10000"></div>
+      <div class="form-field" style="margin-bottom:14px"><label>Интервал ТО по времени (мес)</label><input type="number" id="toIntervalMonths" min="1" value="12"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeTOModal()">Отмена</button>
+        <button type="submit" class="btn">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// ===================== STORAGE =====================
+const V_KEY = 'garage_vehicles_v2';
+const I_KEY = 'garage_items_v2';
+
+let vehicles = JSON.parse(localStorage.getItem(V_KEY) || 'null');
+if (!vehicles || !vehicles.length) {
+  vehicles = [{
+    id: 'v1', name: 'Мой автомобиль', plate: '',
+    mileage: 0, lastTODate: '', lastTOMileage: 0,
+    intervalKm: 10000, intervalMonths: 12
+  }];
+}
+let activeVehicleId = vehicles[0].id;
+let items = JSON.parse(localStorage.getItem(I_KEY) || '{}'); // { vehicleId: [items] }
+if (!items[activeVehicleId]) items[activeVehicleId] = [];
+
+let currentView = 'records';
+let chartData = null;
+
+function persistAll() {
+  localStorage.setItem(V_KEY, JSON.stringify(vehicles));
+  localStorage.setItem(I_KEY, JSON.stringify(items));
+}
+function getItems() { return items[activeVehicleId] || []; }
+function setItems(arr) { items[activeVehicleId] = arr; persistAll(); }
+function getActiveVehicle() { return vehicles.find(v => v.id === activeVehicleId) || vehicles[0]; }
+
+// ===================== VEHICLE TABS =====================
+function renderVehicleTabs() {
+  const el = document.getElementById('vehicleTabs');
+  el.innerHTML = '';
+  vehicles.forEach(v => {
+    const tab = document.createElement('div');
+    tab.className = 'vtab' + (v.id === activeVehicleId ? ' active' : '');
+    tab.innerHTML = `🚙 ${esc(v.name)}${v.plate ? ` <span style="opacity:.6;font-size:12px">${esc(v.plate)}</span>` : ''}`;
+    tab.onclick = () => selectVehicle(v.id);
+    if (vehicles.length > 1) {
+      const del = document.createElement('span');
+      del.className = 'vdel'; del.textContent = '✕';
+      del.title = 'Удалить транспорт';
+      del.onclick = (e) => { e.stopPropagation(); deleteVehicle(v.id); };
+      tab.appendChild(del);
+    }
+    el.appendChild(tab);
+  });
+  const add = document.createElement('button');
+  add.className = 'vtab-add'; add.textContent = '+ Транспорт';
+  add.onclick = openVehicleModal;
+  el.appendChild(add);
+}
+function selectVehicle(id) {
+  activeVehicleId = id;
+  if (!items[activeVehicleId]) items[activeVehicleId] = [];
+  renderVehicleTabs(); renderStats(); renderRecords(); renderReminders(); renderChart();
+}
+function openVehicleModal() { document.getElementById('vehicleModal').classList.add('active'); }
+function closeVehicleModal() { document.getElementById('vehicleModal').classList.remove('active'); document.getElementById('vName').value=''; document.getElementById('vPlate').value=''; document.getElementById('vMileage').value=0; document.getElementById('vLastTO').value=''; document.getElementById('vLastTOMileage').value=0; }
+function saveVehicle(e) {
+  e.preventDefault();
+  const v = {
+    id: 'v' + Date.now(),
+    name: document.getElementById('vName').value.trim(),
+    plate: document.getElementById('vPlate').value.trim(),
+    mileage: Number(document.getElementById('vMileage').value) || 0,
+    lastTODate: document.getElementById('vLastTO').value,
+    lastTOMileage: Number(document.getElementById('vLastTOMileage').value) || 0,
+    intervalKm: 10000, intervalMonths: 12
+  };
+  vehicles.push(v);
+  items[v.id] = [];
+  persistAll();
+  activeVehicleId = v.id;
+  closeVehicleModal(); renderAll();
+}
+function deleteVehicle(id) {
+  if (vehicles.length <= 1) { alert('Нельзя удалить последний транспорт'); return; }
+  if (!confirm('Удалить транспорт и все его записи?')) return;
+  vehicles = vehicles.filter(v => v.id !== id);
+  delete items[id];
+  if (activeVehicleId === id) activeVehicleId = vehicles[0].id;
+  persistAll(); renderAll();
+}
+
+// ===================== STATS =====================
+function renderStats() {
+  const list = getItems();
+  const total = list.length;
+  const done = list.filter(x => x.status === 'Сделано').length;
+  const prog = list.filter(x => x.status === 'В процессе').length;
+  const cost = list.reduce((s, x) => s + (x.cost || 0), 0);
+  const planned = list.filter(x => x.status !== 'Сделано').reduce((s, x) => s + (x.cost || 0), 0);
+
+  document.getElementById('stats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Всего записей</div><div class="stat-value">${total}</div></div>
+    <div class="stat-card"><div class="stat-label">✅ Сделано</div><div class="stat-value green">${done}</div></div>
+    <div class="stat-card"><div class="stat-label">🔧 В процессе</div><div class="stat-value yellow">${prog}</div></div>
+    <div class="stat-card"><div class="stat-label">💰 Потрачено</div><div class="stat-value accent">${cost.toLocaleString('ru-RU')} ₽</div></div>
+    <div class="stat-card"><div class="stat-label">📅 Запланировано</div><div class="stat-value" style="color:var(--text-dim)">${planned.toLocaleString('ru-RU')} ₽</div></div>
+  `;
+}
+
+// ===================== RECORDS =====================
+function badgeClass(t) {
+  return {'Сделано':'done','В процессе':'inprogress','Планируется':'planned',
+    'Обязательно':'required','Опционально':'optional','Оплачено':'paid',
+    'Не оплачено':'unpaid','Доставлено':'delivered','Заказано':'ordered'}[t] || '';
+}
+function esc(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtDate(d){ if(!d) return ''; const [y,m,day]=d.split('-'); return `${day}.${m}.${y}`; }
+
+function renderRecords() {
+  const q = (document.getElementById('search').value || '').toLowerCase().trim();
+  const fs = document.getElementById('filterStatus').value;
+  const fp = document.getElementById('filterPayment').value;
+  let list = getItems().filter(it => {
+    if (fs && it.status !== fs) return false;
+    if (fp && it.payment !== fp) return false;
+    if (q && !(it.name.toLowerCase().includes(q) || (it.comment||'').toLowerCase().includes(q))) return false;
+    return true;
+  });
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  document.getElementById('empty-records').style.display = list.length ? 'none' : 'block';
+
+  list.forEach(it => {
+    const el = document.createElement('div');
+    el.className = 'item';
+    el.innerHTML = `
+      <div class="item-header">
+        <div class="item-title">${esc(it.name)}</div>
+        <div class="item-actions">
+          <button class="icon-btn" title="Отметить" onclick="toggleDone('${it.id}')">${it.status==='Сделано'?'↺':'✓'}</button>
+          <button class="icon-btn" title="Изменить" onclick="openItemModal('${it.id}')">✎</button>
+          <button class="icon-btn danger" title="Удалить" onclick="deleteItem('${it.id}')">✕</button>
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge ${badgeClass(it.status)}">${esc(it.status)}</span>
+        <span class="badge ${badgeClass(it.necessity)}">${esc(it.necessity)}</span>
+        <span class="badge ${badgeClass(it.payment)}">${esc(it.payment)}</span>
+        ${it.delivery && it.delivery!=='Не требуется' ? `<span class="badge ${badgeClass(it.delivery)}">${esc(it.delivery)}</span>` : ''}
+        <span class="badge" style="background:rgba(124,92,255,.15);color:#a48bff">${esc(it.category)}</span>
+      </div>
+      <div class="item-meta">
+        ${it.date ? `<div>📅 <strong>${fmtDate(it.date)}</strong></div>` : ''}
+        ${it.cost ? `<div>💰 <strong>${it.cost.toLocaleString('ru-RU')} ₽</strong></div>` : ''}
+        ${it.deliveryDate ? `<div>🚚 Доставка: <strong>${fmtDate(it.deliveryDate)}</strong></div>` : ''}
+      </div>
+      ${it.comment ? `<div class="item-comment">${esc(it.comment)}</div>` : ''}
+      ${it.link ? `<a class="item-link" href="${esc(it.link)}" target="_blank" rel="noopener">🔗 Ссылка</a>` : ''}
+    `;
+    grid.appendChild(el);
+  });
+}
+
+function openItemModal(id) {
+  document.getElementById('itemModal').classList.add('active');
+  const form = document.getElementById('itemModal').querySelector('form');
+  form.reset();
+  document.getElementById('itemId').value = '';
+  if (id) {
+    const it = getItems().find(x => x.id === id);
+    if (it) {
+      document.getElementById('itemModalTitle').textContent = 'Редактировать запись';
+      document.getElementById('itemId').value = it.id;
+      ['name','date','category','necessity','status','cost','payment','delivery','deliveryDate','comment','link']
+        .forEach(k => { const el = document.getElementById(k); if (el) el.value = it[k] || ''; });
+    }
+  } else {
+    document.getElementById('itemModalTitle').textContent = 'Новая запись';
+    document.getElementById('date').value = new Date().toISOString().slice(0,10);
+  }
+}
+function closeItemModal() { document.getElementById('itemModal').classList.remove('active'); }
+
+function saveItem(e) {
+  e.preventDefault();
+  const id = document.getElementById('itemId').value || 'i' + Date.now();
+  const item = {
+    id,
+    name: document.getElementById('name').value.trim(),
+    date: document.getElementById('date').value,
+    category: document.getElementById('category').value,
+    necessity: document.getElementById('necessity').value,
+    status: document.getElementById('status').value,
+    cost: Number(document.getElementById('cost').value) || 0,
+    payment: document.getElementById('payment').value,
+    delivery: document.getElementById('delivery').value,
+    deliveryDate: document.getElementById('deliveryDate').value,
+    comment: document.getElementById('comment').value.trim(),
+    link: document.getElementById('link').value.trim()
+  };
+  let list = getItems();
+  const idx = list.findIndex(x => x.id === id);
+  if (idx >= 0) list[idx] = item; else list.unshift(item);
+  setItems(list);
+  closeItemModal(); renderStats(); renderRecords(); renderReminders(); renderChart();
+}
+
+function deleteItem(id) {
+  if (!confirm('Удалить запись?')) return;
+  setItems(getItems().filter(x => x.id !== id));
+  renderStats(); renderRecords(); renderReminders(); renderChart();
+}
+function toggleDone(id) {
+  const list = getItems();
+  const it = list.find(x => x.id === id);
+  if (it) { it.status = it.status === 'Сделано' ? 'Планируется' : 'Сделано'; setItems(list); renderStats(); renderRecords(); renderReminders(); renderChart(); }
+}
+
+// ===================== REMINDERS =====================
+function renderReminders() {
+  const v = getActiveVehicle();
+  const list = document.getElementById('remindersList');
+  list.innerHTML = '';
+
+  // Header with settings button
+  const header = document.createElement('div');
+  header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px';
+  header.innerHTML = `
+    <div style="font-size:14px;color:var(--text-dim)">
+      🚙 <strong style="color:var(--text)">${esc(v.name)}</strong>
+      • Пробег: <strong style="color:var(--text)">${(v.mileage||0).toLocaleString('ru-RU')} км</strong>
+      ${v.lastTODate ? `• Последнее ТО: <strong style="color:var(--text)">${fmtDate(v.lastTODate)}</strong> (${(v.lastTOMileage||0).toLocaleString('ru-RU')} км)` : '• ТО ещё не проводилось'}
+    </div>
+    <button class="btn btn-ghost" onclick="openTOModal()">⚙️ Настройки ТО</button>
+  `;
+  list.appendChild(header);
+
+  if (!v.lastTODate && !v.lastTOMileage) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.innerHTML = `<div class="empty-icon">⚙️</div><h3>Настройте ТО</h3><p>Укажите текущий пробег и данные последнего ТО, чтобы получать напоминания</p>`;
+    list.appendChild(empty);
+    return;
+  }
+
+  // Calculate progress
+  const kmSinceTO = (v.mileage || 0) - (v.lastTOMileage || 0);
+  const kmRemaining = (v.intervalKm || 10000) - kmSinceTO;
+  const kmProgress = Math.min(100, (kmSinceTO / (v.intervalKm || 10000)) * 100);
+
+  let monthsSinceTO = 0, monthsRemaining = 0, monthsProgress = 0;
+  if (v.lastTODate) {
+    const last = new Date(v.lastTODate);
+    const now = new Date();
+    monthsSinceTO = (now.getFullYear() - last.getFullYear()) * 12 + (now.getMonth() - last.getMonth());
+    monthsRemaining = (v.intervalMonths || 12) - monthsSinceTO;
+    monthsProgress = Math.min(100, (monthsSinceTO / (v.intervalMonths || 12)) * 100);
+  }
+
+  // KM card
+  list.appendChild(makeReminderCard({
+    icon: '🛣️', title: 'ТО по пробегу',
+    sub: `Пройдено ${kmSinceTO.toLocaleString('ru-RU')} км из ${(v.intervalKm||10000).toLocaleString('ru-RU')} км`,
+    remaining: kmRemaining, progress: kmProgress, unit: 'км'
+  }));
+
+  // Time card
+  if (v.lastTODate) {
+    list.appendChild(makeReminderCard({
+      icon: '📅', title: 'ТО по времени',
+      sub: `Прошло ${monthsSinceTO} мес. из ${v.intervalMonths || 12} мес.`,
+      remaining: monthsRemaining, progress: monthsProgress, unit: 'мес.'
+    }));
+  }
+
+  // Recommendations
+  const maxProgress = Math.max(kmProgress, monthsProgress);
+  const rec = document.createElement('div');
+  rec.style.cssText = 'margin-top:20px;padding:18px;border-radius:14px;background:var(--card);border:1px solid var(--border)';
+  let recText, recColor;
+  if (maxProgress >= 100) { recText = '⚠️ Пора записаться на ТО! Один из интервалов превышен.'; recColor = 'var(--red)'; }
+  else if (maxProgress >= 80) { recText = '🔔 Скоро ТО — начните планировать визит в сервис.'; recColor = 'var(--yellow)'; }
+  else if (maxProgress >= 50) { recText = '✅ Всё в порядке. До следующего ТО ещё есть запас.'; recColor = 'var(--green)'; }
+  else { recText = '🟢 Вы в начале интервала — можно расслабиться.'; recColor = 'var(--green)'; }
+  rec.innerHTML = `<div style="font-size:14px;font-weight:600;color:${recColor}">${recText}</div>`;
+  list.appendChild(rec);
+}
+
+function makeReminderCard({icon, title, sub, remaining, progress, unit}) {
+  const div = document.createElement('div');
+  let cls = '';
+  if (remaining <= 0) cls = 'overdue';
+  else if (unit === 'км' && remaining < 1000) cls = 'soon';
+  else if (unit === 'мес.' && remaining <= 1) cls = 'soon';
+  div.className = 'reminder-item ' + cls;
+
+  const badgeCls = remaining <= 0 ? 'overdue' : (cls === 'soon' ? 'soon' : 'ok');
+  const badgeText = remaining <= 0
+    ? (unit === 'км' ? `Просрочено на ${Math.abs(remaining).toLocaleString('ru-RU')} км` : `Просрочено на ${Math.abs(remaining)} мес.`)
+    : `Осталось ${remaining.toLocaleString('ru-RU')} ${unit}`;
+
+  const barColor = progress >= 100 ? 'var(--red)' : progress >= 80 ? 'var(--yellow)' : 'var(--green)';
+
+  div.innerHTML = `
+    <div class="reminder-icon">${icon}</div>
+    <div class="reminder-body">
+      <div class="reminder-title">${title}</div>
+      <div class="reminder-sub">${sub}</div>
+      <div class="reminder-progress"><div class="reminder-progress-bar" style="width:${Math.min(100,progress)}%;background:${barColor}"></div></div>
+    </div>
+    <div class="reminder-badge ${badgeCls}">${badgeText}</div>
+  `;
+  return div;
+}
+
+function openTOModal() {
+  const v = getActiveVehicle();
+  document.getElementById('toVehicleId').value = v.id;
+  document.getElementById('toMileage').value = v.mileage || 0;
+  document.getElementById('toLastDate').value = v.lastTODate || '';
+  document.getElementById('toLastMileage').value = v.lastTOMileage || 0;
+  document.getElementById('toIntervalKm').value = v.intervalKm || 10000;
+  document.getElementById('toIntervalMonths').value = v.intervalMonths || 12;
+  document.getElementById('toModal').classList.add('active');
+}
+function closeTOModal() { document.getElementById('toModal').classList.remove('active'); }
+function saveTO(e) {
+  e.preventDefault();
+  const v = getActiveVehicle();
+  v.mileage = Number(document.getElementById('toMileage').value) || 0;
+  v.lastTODate = document.getElementById('toLastDate').value;
+  v.lastTOMileage = Number(document.getElementById('toLastMileage').value) || 0;
+  v.intervalKm = Number(document.getElementById('toIntervalKm').value) || 10000;
+  v.intervalMonths = Number(document.getElementById('toIntervalMonths').value) || 12;
+  persistAll(); closeTOModal(); renderReminders(); renderVehicleTabs();
+}
+
+// ===================== CHART =====================
+function renderChart() {
+  const list = getItems().filter(x => x.cost > 0);
+  const barChart = document.getElementById('barChart');
+  const chartEmpty = document.getElementById('chartEmpty');
+  const summary = document.getElementById('chartSummary');
+  const catChart = document.getElementById('categoryChart');
+
+  if (!list.length) {
+    barChart.innerHTML = '';
+    barChart.style.display = 'none';
+    chartEmpty.classList.remove('hidden');
+    summary.innerHTML = '';
+    catChart.innerHTML = '<div class="chart-empty">Нет данных</div>';
+    return;
+  }
+  barChart.style.display = 'flex';
+  chartEmpty.classList.add('hidden');
+
+  // Build months map (last 12 months)
+  const now = new Date();
+  const months = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({ key: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`, label: d.toLocaleDateString('ru-RU',{month:'short'}), year: d.getFullYear() });
+  }
+  const monthNames = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  months.forEach(m => m.label = monthNames[parseInt(m.key.slice(5))-1]);
+
+  const sums = months.map(m => list.filter(x => (x.date||'').startsWith(m.key)).reduce((s,x)=>s+x.cost,0));
+  const max = Math.max(...sums, 1);
+
+  barChart.innerHTML = '';
+  months.forEach((m, i) => {
+    const val = sums[i];
+    const pct = (val / max) * 100;
+    const col = document.createElement('div');
+    col.className = 'bar-col';
+    col.innerHTML = `
+      <div class="bar-val">${val ? Math.round(val/1000)+'к' : ''}</div>
+      <div class="bar" style="height:${Math.max(3,pct)}%" title="${m.label} ${m.year}: ${val.toLocaleString('ru-RU')} ₽"></div>
+      <div class="bar-label">${m.label}</div>
+    `;
+    barChart.appendChild(col);
+  });
+
+  const total = list.reduce((s,x)=>s+x.cost,0);
+  const doneSum = list.filter(x => x.status === 'Сделано').reduce((s,x)=>s+x.cost,0);
+  const avg = Math.round(total / 12);
+  summary.innerHTML = `
+    <div>Всего: <strong>${total.toLocaleString('ru-RU')} ₽</strong></div>
+    <div>Выполнено: <strong>${doneSum.toLocaleString('ru-RU')} ₽</strong></div>
+    <div>В среднем/мес: <strong>${avg.toLocaleString('ru-RU')} ₽</strong></div>
+  `;
+
+  // Category chart
+  const cats = {};
+  list.forEach(x => { cats[x.category] = (cats[x.category]||0) + x.cost; });
+  const entries = Object.entries(cats).sort((a,b)=>b[1]-a[1]);
+  const maxCat = Math.max(...entries.map(e=>e[1]), 1);
+  catChart.innerHTML = entries.map(([cat, val]) => `
+    <div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">
+        <span style="font-weight:600">${esc(cat)}</span>
+        <span style="color:var(--text-dim)">${val.toLocaleString('ru-RU')} ₽</span>
+      </div>
+      <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${(val/maxCat)*100}%;background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:4px;transition:width .4s"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ===================== VIEWS =====================
+function switchView(view) {
+  currentView = view;
+  document.querySelectorAll('.view-toggle button').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  document.getElementById('view-records').classList.toggle('hidden', view !== 'records');
+  document.getElementById('view-reminders').classList.toggle('hidden', view !== 'reminders');
+  document.getElementById('view-chart').classList.toggle('hidden', view !== 'chart');
+  if (view === 'reminders') renderReminders();
+  if (view === 'chart') renderChart();
+}
+
+// ===================== EXPORT =====================
+function exportData() {
+  const data = { vehicles, items, exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'garage-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click(); URL.revokeObjectURL(url);
+}
+
+// ===================== INIT =====================
+function renderAll() {
+  renderVehicleTabs(); renderStats(); renderRecords(); renderReminders(); renderChart();
+}
+renderAll();
+</script>
+</body>
+</html>
